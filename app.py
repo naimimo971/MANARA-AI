@@ -1,12 +1,16 @@
 # app.py
 import streamlit as st
-from rag_chat import answer
 import os
+import base64
+from dotenv import load_dotenv
+
+# Load environment variables for local development
+load_dotenv()
 
 # --- Configuration and Setup ---
 st.set_page_config(
     page_title="Manara - Your Guide to ATS",
-    page_icon="logo.png",
+    page_icon="🧠",  # Using emoji instead of file path
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -88,95 +92,98 @@ body {
     transform: translateY(-2px);
 }
 
-/* Chat message styling (Streamlit's default chat elements are hard to style, so we'll rely on Streamlit's theme and custom markdown for bot messages) */
-/* Overriding Streamlit's default theme to match the dark aesthetic */
+/* Chat message styling */
 [data-testid="stHeader"] {
-    display: none; /* Hide Streamlit header */
+    display: none;
 }
-[data-testid="stToolbar"] {
-    right: 2rem;
-}
-[data-testid="stSidebar"] {
-    background-color: var(--card-bg);
-}
-.st-emotion-cache-18ni2g1 { /* Main content padding */
+.st-emotion-cache-18ni2g1 {
     padding-top: 0;
 }
-.st-emotion-cache-1wa0z9t { /* Main content background */
+.st-emotion-cache-1wa0z9t {
     background-color: transparent;
 }
-.st-emotion-cache-10trblm { /* Title/Header color */
+.st-emotion-cache-10trblm {
     color: var(--primary);
-}
-.st-emotion-cache-13ln4jw { /* Chat input container */
-    background-color: var(--card-bg);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid rgba(116,198,157,.3);
-    box-shadow: 0 8px 32px rgba(0,0,0,.2);
-}
-.st-emotion-cache-16txto3 { /* Chat input text area */
-    background-color: rgba(255,255,255,.05);
-    color: #e9f5ee;
-    border: 1px solid rgba(116,198,157,.3);
-    border-radius: 12px;
-}
-.st-emotion-cache-16txto3:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 0.2rem rgba(116,198,157,.5);
-}
-.st-emotion-cache-1cyp70b { /* Chat message container */
-    background-color: transparent;
-}
-.st-emotion-cache-4oy32v { /* User message bubble */
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-    color: white;
-    border-radius: 18px 18px 4px 18px;
-}
-.st-emotion-cache-1r4qj8x { /* Bot message bubble */
-    background: rgba(255,255,255,.1);
-    color: #e9f5ee;
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 18px 18px 18px 4px;
-}
-.st-emotion-cache-1g0q2g0 { /* Chat message text */
-    color: inherit;
 }
 """
 
 # Apply custom CSS
 st.markdown(f"<style>{CUSTOM_CSS}</style>", unsafe_allow_html=True)
 
+# --- Helper Functions ---
+
+def get_logo_base64():
+    """Get logo as base64, fallback to empty if not found."""
+    try:
+        logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+    except Exception:
+        pass
+    return None
+
+def initialize_rag():
+    """Initialize RAG system with proper error handling."""
+    try:
+        from rag_chat import answer
+        return answer
+    except ImportError as e:
+        st.error(f"Error importing RAG module: {str(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Error initializing RAG system: {str(e)}")
+        return None
+
 # --- UI Components ---
 
 def header_html():
     """Generates the custom header HTML."""
-    logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-    # Use base64 encoding for the image to embed it directly in HTML
-    import base64
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as f:
-            logo_base64 = base64.b64encode(f.read()).decode()
-            logo_src = f"data:image/png;base64,{logo_base64}"
-    else:
-        logo_src = "" # Fallback
+    # Load logos
+    logo_base64 = get_logo_base64()
+    ats_logo_path = os.path.join(os.path.dirname(__file__), "atslogo.png")
+    ats_logo_base64 = ""
+    if os.path.exists(ats_logo_path):
+        with open(ats_logo_path, "rb") as f:
+            ats_logo_base64 = base64.b64encode(f.read()).decode()
 
+    # Left logo (Manara)
+    if logo_base64:
+        logo_html = f'''
+        <img src="data:image/png;base64,{logo_base64}"
+             alt="Manara Logo"
+             style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+        '''
+    else:
+        logo_html = '🧠'  # Fallback emoji
+
+    # Right logo (ATS)
+    if ats_logo_base64:
+        ats_html = f'''
+        <img src="data:image/png;base64,{ats_logo_base64}"
+             alt="ATS Logo"
+             style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+        '''
+    else:
+        ats_html = ""
+
+    # Updated layout
     html = f"""
-    <div class="header">
-        <div style="position:absolute; left:2rem; top:1rem;">
-            <img src="{logo_src}" alt="ATS Logo" style="height:90px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-        </div>
-        <div style="text-align:center; padding-left:120px;">
+    <div class="header" style="display:flex; align-items:center; justify-content:space-between; position:relative;">
+        <div style="margin-left:2rem;">{logo_html}</div>
+        <div style="text-align:center;">
             <h1 style="color:white; margin:0; font-size:3.5em; font-weight:700; letter-spacing:2px;">Manara</h1>
             <p style="color:rgba(255,255,255,.9); font-size:1.2em; margin:8px 0 0 0;">Your Guide to ATS</p>
+            <div style="display:flex; justify-content:center; gap:12px; margin-top:12px;">
+                <span class="lang-badge">العربية</span>
+                <span class="lang-badge">English</span>
+            </div>
         </div>
-        <div style="display:flex; justify-content:center; gap:12px; margin-top:12px; padding-left:120px;">
-            <span class="lang-badge">العربية</span>
-            <span class="lang-badge">English</span>
-        </div>
+        <div style="margin-right:2rem;">{ats_html}</div>
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
+
 
 def features_html():
     """Generates the features section HTML."""
@@ -190,11 +197,16 @@ def features_html():
     """
     st.markdown(html, unsafe_allow_html=True)
 
-
-
 # --- Main Application Logic ---
 
 def main():
+    # Initialize RAG function
+    rag_answer = initialize_rag()
+    
+    if not rag_answer:
+        st.error("Chatbot functionality is currently unavailable. Please check the configuration.")
+        return
+
     # 1. Header and Features
     header_html()
     features_html()
@@ -236,18 +248,27 @@ def main():
 
             # Get bot response
             with st.chat_message("assistant"):
-                # Check if the prompt is a simple greeting
-                greeting_keywords = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"]
-                is_greeting = any(keyword in prompt.lower() for keyword in greeting_keywords) and len(prompt.split()) <= 3
+                message_placeholder = st.empty()
+                message_placeholder.markdown("Thinking...")
                 
-                if is_greeting:
-                    # Respond with a friendly greeting without using RAG
-                    response = "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today?"
-                else:
-                    # Call the answer function with the query and chat history for actual questions
-                    response = answer(prompt, st.session_state.messages)
-                
-                st.markdown(response)
+                try:
+                    # Check if the prompt is a simple greeting
+                    greeting_keywords = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"]
+                    is_greeting = any(keyword in prompt.lower() for keyword in greeting_keywords) and len(prompt.split()) <= 3
+                    
+                    if is_greeting:
+                        # Respond with a friendly greeting without using RAG
+                        response = "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today?"
+                    else:
+                        # Call the answer function with the query and chat history for actual questions
+                        response = rag_answer(prompt, st.session_state.messages)
+                    
+                    message_placeholder.markdown(response)
+                    
+                except Exception as e:
+                    error_msg = f"I apologize, but I'm experiencing technical difficulties. Please try again later. Error: {str(e)}"
+                    message_placeholder.markdown(error_msg)
+                    response = error_msg
             
             # Add bot response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
