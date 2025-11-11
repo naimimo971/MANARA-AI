@@ -1,0 +1,55 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+*.egg-info/
+installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.pth
+*.tmp
+
+# Streamlit
+.streamlit/
+
+# Large files
+*.zip
+*.tar.gz
+*.exe
+*.msi
+*.mov
+*.mp4
+*.webm
+*.pcapng
+
+# Project specific
+data/
