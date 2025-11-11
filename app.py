@@ -137,15 +137,20 @@ def initialize_rag():
 
 # --- UI Components ---
 
+import os
+import base64
+import streamlit as st
+
 def header_html():
     """Generates the custom header HTML with Manara and ATS logos."""
     # Load Manara logo
     logo_base64 = get_logo_base64()
 
-    # Load ATS logo (supports .png or .jpg)
+    # Load ATS logo
     ats_logo_base64 = ""
-    base_dir = os.path.dirname(__file__)
-
+    
+    # Use current working directory
+    base_dir = os.getcwd()
     ats_logo_path_png = os.path.join(base_dir, "atslogo.png")
     ats_logo_path_jpg = os.path.join(base_dir, "atslogo.jpg")
 
@@ -155,28 +160,22 @@ def header_html():
     elif os.path.exists(ats_logo_path_jpg):
         with open(ats_logo_path_jpg, "rb") as f:
             ats_logo_base64 = base64.b64encode(f.read()).decode()
+    else:
+        st.write(f"ATS logo not found at {ats_logo_path_png} or {ats_logo_path_jpg}")
 
     # Left logo (Manara)
-    if logo_base64:
-        logo_html = f'''
-        <img src="data:image/png;base64,{logo_base64}"
-             alt="Manara Logo"
+    logo_html = f'''
+        <img src="data:image/png;base64,{logo_base64}" alt="Manara Logo"
              style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-        '''
-    else:
-        logo_html = '🧠'  # Fallback emoji
+    ''' if logo_base64 else "🧠"
 
     # Right logo (ATS)
-    if ats_logo_base64:
-        ats_html = f'''
-        <img src="data:image/jpeg;base64,{ats_logo_base64}"
-             alt="ATS Logo"
+    ats_html = f'''
+        <img src="data:image/jpeg;base64,{ats_logo_base64}" alt="ATS Logo"
              style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-        '''
-    else:
-        ats_html = ""
+    ''' if ats_logo_base64 else ""
 
-    # Updated layout with both logos
+    # HTML
     html = f"""
     <div class="header" style="display:flex; align-items:center; justify-content:space-between; position:relative;">
         <div style="margin-left:2rem;">{logo_html}</div>
@@ -192,6 +191,7 @@ def header_html():
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
+
 
 
 
