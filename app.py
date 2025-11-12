@@ -185,6 +185,8 @@ def features_html():
 
 # --- Main Application Logic ---
 
+# Replace your entire main() function with this simplified version:
+
 def main():
     # Initialize RAG function
     rag_answer = initialize_rag()
@@ -196,88 +198,96 @@ def main():
     # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "quick_action_triggered" not in st.session_state:
-        st.session_state.quick_action_triggered = None
+    if "last_action" not in st.session_state:
+        st.session_state.last_action = None
 
     # 1. Header and Features
     header_html()
     features_html()
+    
+    # DEBUG: Show current state
+    st.sidebar.write(f"Last action: {st.session_state.last_action}")
     
     # 2. Clear Chat Button
     col_clear = st.columns([3, 1])[1]
     with col_clear:
         if st.button("🗑️ Clear Chat", use_container_width=True, key="clear_chat_btn"):
             st.session_state.messages = []
-            st.session_state.quick_action_triggered = None
+            st.session_state.last_action = None
             st.rerun()
 
-    # 3. Layout for Chat and Sidebar
+    # 3. Quick Actions FIRST - Process them before chat input
+    quick_actions = {
+        "Admission Info": "What are the admission requirements?",
+        "Fee Structure": "How much are the tuition fees?", 
+        "Programs": "What programs are available at ATS?",
+        "Locations": "Where are the ATS campuses located?"
+    }
+    
+    # Check if quick action was triggered
+    if st.session_state.last_action in quick_actions:
+        question = quick_actions[st.session_state.last_action]
+        
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": question})
+        
+        # Get bot response
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            message_placeholder.markdown("Thinking...")
+            
+            try:
+                response = rag_answer(question, st.session_state.messages)
+                message_placeholder.markdown(response)
+            except Exception as e:
+                error_msg = f"Error: {str(e)}"
+                message_placeholder.markdown(error_msg)
+                response = error_msg
+        
+        # Add bot response
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        
+        # Reset action
+        st.session_state.last_action = None
+        st.rerun()
+
+    # 4. Layout for Chat and Sidebar
     col1, col2 = st.columns([3, 1])
 
     with col1:
-        # Display chat messages from history
+        # Display chat messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        # Handle quick action triggered questions
-        if st.session_state.quick_action_triggered:
-            prompt = st.session_state.quick_action_triggered
-            st.session_state.quick_action_triggered = None
-            
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            
-            # Get bot response
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                message_placeholder.markdown("Thinking...")
+        # Regular chat input (only if no quick action in progress)
+        if not st.session_state.last_action:
+            if prompt := st.chat_input("Ask a question about ATS...", key="chat_input"):
+                st.session_state.messages.append({"role": "user", "content": prompt})
                 
-                try:
-                    response = rag_answer(prompt, st.session_state.messages)
-                    message_placeholder.markdown(response)
-                except Exception as e:
-                    error_msg = f"I apologize, but I'm experiencing technical difficulties. Please try again later. Error: {str(e)}"
-                    message_placeholder.markdown(error_msg)
-                    response = error_msg
-            
-            # Add bot response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            
-            # Rerun to show the new messages
-            st.rerun()
-
-        # Regular chat input
-        if prompt := st.chat_input("Ask a question about ATS...", key="chat_input"):
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            
-            # Get bot response
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                message_placeholder.markdown("Thinking...")
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty()
+                    message_placeholder.markdown("Thinking...")
+                    
+                    try:
+                        greeting_keywords = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"]
+                        is_greeting = any(keyword in prompt.lower() for keyword in greeting_keywords) and len(prompt.split()) <= 3
+                        
+                        if is_greeting:
+                            response = "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today?"
+                        else:
+                            response = rag_answer(prompt, st.session_state.messages)
+                        
+                        message_placeholder.markdown(response)
+                    except Exception as e:
+                        error_msg = f"Error: {str(e)}"
+                        message_placeholder.markdown(error_msg)
+                        response = error_msg
                 
-                try:
-                    greeting_keywords = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"]
-                    is_greeting = any(keyword in prompt.lower() for keyword in greeting_keywords) and len(prompt.split()) <= 3
-                    
-                    if is_greeting:
-                        response = "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today?"
-                    else:
-                        response = rag_answer(prompt, st.session_state.messages)
-                    
-                    message_placeholder.markdown(response)
-                    
-                except Exception as e:
-                    error_msg = f"I apologize, but I'm experiencing technical difficulties. Please try again later. Error: {str(e)}"
-                    message_placeholder.markdown(error_msg)
-                    response = error_msg
-            
-            # Add bot response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": response})
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
     with col2:
-        # Quick Actions Group
+        # Quick Actions
         st.markdown("""
         <div class="section-card">
             <h3 style="color:#74c69d;margin-top:0;">Quick Actions</h3>
@@ -285,24 +295,13 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Quick action buttons - these will AUTO-SUBMIT immediately
-        if st.button("Admission Info", key="quick_action_1", use_container_width=True):
-            st.session_state.quick_action_triggered = "What are the admission requirements?"
-            st.rerun()
-            
-        if st.button("Fee Structure", key="quick_action_2", use_container_width=True):
-            st.session_state.quick_action_triggered = "How much are the tuition fees?"
-            st.rerun()
-            
-        if st.button("Programs", key="quick_action_3", use_container_width=True):
-            st.session_state.quick_action_triggered = "What programs are available at ATS?"
-            st.rerun()
-            
-        if st.button("Locations", key="quick_action_4", use_container_width=True):
-            st.session_state.quick_action_triggered = "Where are the ATS campuses located?"
-            st.rerun()
+        # SIMPLE buttons that immediately trigger actions
+        for action_name in quick_actions.keys():
+            if st.button(action_name, key=f"btn_{action_name}", use_container_width=True):
+                st.session_state.last_action = action_name
+                st.rerun()
 
-        # About ATS Group
+        # About ATS
         st.markdown("""
         <div class="section-card">
             <h3 style="color:#74c69d;margin-top:0;">About ATS</h3>
