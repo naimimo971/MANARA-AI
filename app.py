@@ -92,7 +92,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* Chat message styling */
+/* Chat message styling - FIXED FOR ALL USERS */
 [data-testid="stHeader"] {
     display: none;
 }
@@ -104,6 +104,31 @@ body {
 }
 .st-emotion-cache-10trblm {
     color: var(--primary);
+}
+
+/* FIX: Ensure chat text is visible for all users */
+.stChatMessage {
+    color: #ffffff !important;
+}
+.st-emotion-cache-4oy32v {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: white !important;
+}
+.st-emotion-cache-1r4qj8x {
+    background: rgba(255,255,255,.1) !important;
+    color: #e9f5ee !important;
+    border: 1px solid rgba(255,255,255,.1);
+}
+.st-emotion-cache-1g0q2g0 {
+    color: inherit !important;
+}
+
+/* Input field styling */
+.stChatInputContainer {
+    background-color: var(--card-bg) !important;
+}
+.st-emotion-cache-13ln4jw {
+    background-color: var(--card-bg) !important;
 }
 """
 
@@ -123,6 +148,41 @@ def get_logo_base64():
         pass
     return None
 
+def get_ats_logo_base64():
+    """Get ATS logo as base64, fallback to empty if not found."""
+    try:
+        # Try multiple possible locations for the ATS logo
+        base_dir = os.path.dirname(__file__)
+        possible_paths = [
+            os.path.join(base_dir, "atslogo.jpg"),
+            os.path.join(base_dir, "atslogo.png"),
+            os.path.join(base_dir, "ats_logo.jpg"),
+            os.path.join(base_dir, "ats_logo.png"),
+            "atslogo.jpg",
+            "atslogo.png"
+        ]
+        
+        for logo_path in possible_paths:
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as f:
+                    return base64.b64encode(f.read()).decode()
+        
+        # If not found, check current directory
+        current_dir = os.getcwd()
+        possible_paths_current = [
+            os.path.join(current_dir, "atslogo.jpg"),
+            os.path.join(current_dir, "atslogo.png")
+        ]
+        
+        for logo_path in possible_paths_current:
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as f:
+                    return base64.b64encode(f.read()).decode()
+                    
+    except Exception as e:
+        st.error(f"Error loading ATS logo: {str(e)}")
+    return None
+
 def initialize_rag():
     """Initialize RAG system with proper error handling."""
     try:
@@ -137,31 +197,11 @@ def initialize_rag():
 
 # --- UI Components ---
 
-import os
-import base64
-import streamlit as st
-
 def header_html():
     """Generates the custom header HTML with Manara and ATS logos."""
-    # Load Manara logo
+    # Load logos
     logo_base64 = get_logo_base64()
-
-    # Load ATS logo
-    ats_logo_base64 = ""
-    
-    # Use current working directory
-    base_dir = os.getcwd()
-    ats_logo_path_png = os.path.join(base_dir, "atslogo.png")
-    ats_logo_path_jpg = os.path.join(base_dir, "atslogo.jpg")
-
-    if os.path.exists(ats_logo_path_png):
-        with open(ats_logo_path_png, "rb") as f:
-            ats_logo_base64 = base64.b64encode(f.read()).decode()
-    elif os.path.exists(ats_logo_path_jpg):
-        with open(ats_logo_path_jpg, "rb") as f:
-            ats_logo_base64 = base64.b64encode(f.read()).decode()
-    else:
-        st.write(f"ATS logo not found at {ats_logo_path_png} or {ats_logo_path_jpg}")
+    ats_logo_base64 = get_ats_logo_base64()
 
     # Left logo (Manara)
     logo_html = f'''
@@ -173,9 +213,8 @@ def header_html():
     ats_html = f'''
         <img src="data:image/jpeg;base64,{ats_logo_base64}" alt="ATS Logo"
              style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-    ''' if ats_logo_base64 else ""
+    ''' if ats_logo_base64 else "🏫"  # Fallback emoji
 
-    # HTML
     html = f"""
     <div class="header" style="display:flex; align-items:center; justify-content:space-between; position:relative;">
         <div style="margin-left:2rem;">{logo_html}</div>
@@ -191,9 +230,6 @@ def header_html():
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
-
-
-
 
 def features_html():
     """Generates the features section HTML."""
@@ -235,22 +271,49 @@ def main():
         # Initialize chat history
         if "messages" not in st.session_state:
             st.session_state.messages = []
+            
+        # Initialize auto-submit state
+        if "auto_submit" not in st.session_state:
+            st.session_state.auto_submit = None
 
         # Display chat messages from history on app rerun
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        # Handle quick action button click to pre-fill the prompt
-        prompt_value = st.session_state.get("prompt_input", "")
-        
-        # Use the pre-filled value if available, otherwise use empty string
-        chat_input_placeholder = prompt_value if prompt_value else "Ask a question about ATS..."
-        if prompt := st.chat_input(chat_input_placeholder, key="chat_input"):
-            # Clear the pre-filled value after use
-            if "prompt_input" in st.session_state:
-                del st.session_state["prompt_input"]
+        # Handle auto-submit from quick actions
+        if st.session_state.auto_submit:
+            prompt = st.session_state.auto_submit
+            st.session_state.auto_submit = None
+            
+            # Add user message to chat history
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
+            # Get bot response
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                message_placeholder.markdown("Thinking...")
+                
+                try:
+                    # Call the answer function with the query and chat history
+                    response = rag_answer(prompt, st.session_state.messages)
+                    message_placeholder.markdown(response)
+                    
+                except Exception as e:
+                    error_msg = f"I apologize, but I'm experiencing technical difficulties. Please try again later. Error: {str(e)}"
+                    message_placeholder.markdown(error_msg)
+                    response = error_msg
+            
+            # Add bot response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            # Rerun to show the new messages
+            st.rerun()
+
+        # Regular chat input (only show if no auto-submit)
+        if prompt := st.chat_input("Ask a question about ATS...", key="chat_input"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
@@ -292,18 +355,18 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # The quick action buttons use session state to pre-fill the chat input
+        # Quick action buttons - now they auto-submit the question
         if st.button("Admission Info", key="quick_action_Admission Info", use_container_width=True):
-            st.session_state.prompt_input = "What are the admission requirements?"
+            st.session_state.auto_submit = "What are the admission requirements?"
             st.rerun()
         if st.button("Fee Structure", key="quick_action_Fee Structure", use_container_width=True):
-            st.session_state.prompt_input = "How much are the tuition fees?"
+            st.session_state.auto_submit = "How much are the tuition fees?"
             st.rerun()
         if st.button("Programs", key="quick_action_Programs", use_container_width=True):
-            st.session_state.prompt_input = "What programs are available at ATS?"
+            st.session_state.auto_submit = "What programs are available at ATS?"
             st.rerun()
         if st.button("Locations", key="quick_action_Locations", use_container_width=True):
-            st.session_state.prompt_input = "Where are the ATS campuses located?"
+            st.session_state.auto_submit = "Where are the ATS campuses located?"
             st.rerun()
 
         # About ATS Group
