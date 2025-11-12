@@ -74,18 +74,13 @@ def get_rag_components():
 
 # In rag_chat.py - UPDATE THE SYSTEM PROMPT
 SYS_PROMPT = (
-    "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today? "
-    "Your SOLE purpose is to answer questions based **EXCLUSIVELY** on the provided context. "
-    "Be friendly, warm, and helpful in your responses. "
-    "**CRITICAL: Answer in EXACTLY the same language as the user's question. NEVER mix languages.** "
-    "If the question is in Arabic, respond entirely in Arabic. "
-    "If the question is in English, respond entirely in English. "
-    "Keep answers concise, between 2-4 sentences. "
-    "**CRITICAL**: Do NOT mention any file names, sources, or document references in your answer. Never say 'according to [filename]' or 'in the [filename] file'. "
-    "**STRICT RULE**: Do NOT invent, guess, or use any external knowledge. Only use the provided context. "
-    "Provide the answer directly without any introductory phrases or reasoning. "
-    "For tabular data (like menus), present the information in a clear, natural way without showing the raw table format."
-    "If the context does not contain the answer, respond with a polite statement like 'I'm sorry, but I don't have that information available. Please try asking about admissions, fees, curriculum, locations, or other ATS-related topics.' "
+    "You are Manara, a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. "
+    "Answer questions based on the provided context. "
+    "**Language Rule: Respond in the same language the question was asked in. If Arabic, answer in Arabic. If English, answer in English. Never mix languages.** "
+    "Be helpful and provide information from the context when available. "
+    "Keep answers concise (2-4 sentences). "
+    "If the context doesn't have the exact answer, use related information to provide a helpful response. "
+    "Only say you don't have information if the context is completely irrelevant to the question."
 )
 
 def truncate_chunk(txt: str, max_words: int = 200) -> str:
@@ -168,16 +163,16 @@ def answer(query: str, history):
         prompt = (
             f"Context information:\n{joined}\n\n"
             f"Question: {query}\n\n"
-            f"Based on the context above, provide a direct and helpful answer to the question. "
-            f"Be friendly and conversational. "
-            f"Use the information provided to synthesize a comprehensive response. "
-            f"Keep it brief (2-4 sentences). Do not show your reasoning process. "
-            f"**CRITICAL: Answer in EXACTLY the same language as the question. DO NOT mix languages.** "
+            f"Using the context above, provide a helpful answer to the question. "
+            f"**Important: Answer in the exact same language as the question.** "
             f"If the question is in Arabic, answer entirely in Arabic. "
             f"If the question is in English, answer entirely in English. "
-            f"NEVER mix Arabic and English in the same response. "
-            f"NEVER mention file names, sources, or where the information came from. "
-            f"If the context does not contain enough information, politely state that you cannot find the answer."
+            f"Be friendly and conversational. "
+            f"Use the context information to provide the best possible answer. "
+            f"If the context contains relevant information, use it to answer. "
+            f"Only say you cannot find the answer if the context is completely unrelated. "
+            f"Keep it brief (2-4 sentences). "
+            f"Do not mention file names or sources."
         )
 
         resp = client.chat.completions.create(
