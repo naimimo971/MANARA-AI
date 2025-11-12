@@ -10,12 +10,12 @@ load_dotenv()
 # --- Configuration and Setup ---
 st.set_page_config(
     page_title="Manara - Your Guide to ATS",
-    page_icon="🧠",  # Using emoji instead of file path
+    page_icon="🧠",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS from ui.py, adapted for Streamlit
+# Custom CSS
 CUSTOM_CSS = """
 /* Modern Dark Theme */
 :root {
@@ -31,12 +31,9 @@ body {
     padding:0;
     font-family:'Segoe UI',system-ui,sans-serif;
 }
-/* Streamlit main container */
 .stApp {
     background: linear-gradient(135deg, var(--dark-bg) 0%, #1b3a4b 100%);
 }
-
-/* Header styling */
 .header {
     background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
     padding: 1.5rem 2rem;
@@ -62,8 +59,6 @@ body {
     0%, 100% { box-shadow: 0 0 5px rgba(116,198,157,0.4); transform: scale(1); }
     50% { box-shadow: 0 0 15px rgba(116,198,157,0.8); transform: scale(1.05); }
 }
-
-/* Section Card styling */
 .section-card {
     background: var(--card-bg);
     border-radius: 16px;
@@ -72,27 +67,6 @@ body {
     border: 1px solid rgba(116,198,157,.2);
     box-shadow: 0 4px 20px rgba(0,0,0,.1);
 }
-
-/* Quick Action Button styling */
-.quick-action-btn {
-    background: rgba(116,198,157,.2);
-    border: 1px solid #74c69d;
-    color: #74c69d;
-    padding: 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all .3s ease;
-    width: 100%;
-    margin: 5px 0;
-    text-align: center;
-    font-weight: 600;
-}
-.quick-action-btn:hover {
-    background: rgba(116,198,157,.3);
-    transform: translateY(-2px);
-}
-
-/* Chat message styling - FIXED FOR ALL USERS */
 [data-testid="stHeader"] {
     display: none;
 }
@@ -105,8 +79,6 @@ body {
 .st-emotion-cache-10trblm {
     color: var(--primary);
 }
-
-/* FIX: Ensure chat text is visible for all users */
 .stChatMessage {
     color: #ffffff !important;
 }
@@ -119,26 +91,14 @@ body {
     color: #e9f5ee !important;
     border: 1px solid rgba(255,255,255,.1);
 }
-.st-emotion-cache-1g0q2g0 {
-    color: inherit !important;
-}
-
-/* Input field styling */
-.stChatInputContainer {
-    background-color: var(--card-bg) !important;
-}
-.st-emotion-cache-13ln4jw {
-    background-color: var(--card-bg) !important;
-}
 """
 
-# Apply custom CSS
 st.markdown(f"<style>{CUSTOM_CSS}</style>", unsafe_allow_html=True)
 
 # --- Helper Functions ---
 
 def get_logo_base64():
-    """Get logo as base64, fallback to empty if not found."""
+    """Get logo as base64."""
     try:
         logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
         if os.path.exists(logo_path):
@@ -149,15 +109,13 @@ def get_logo_base64():
     return None
 
 def get_ats_logo_base64():
-    """Get ATS logo as base64, fallback to empty if not found."""
+    """Get ATS logo as base64."""
     try:
-        # Try multiple possible locations for the ATS logo
+        # Try different possible locations
         base_dir = os.path.dirname(__file__)
         possible_paths = [
             os.path.join(base_dir, "atslogo.jpg"),
             os.path.join(base_dir, "atslogo.png"),
-            os.path.join(base_dir, "ats_logo.jpg"),
-            os.path.join(base_dir, "ats_logo.png"),
             "atslogo.jpg",
             "atslogo.png"
         ]
@@ -166,31 +124,16 @@ def get_ats_logo_base64():
             if os.path.exists(logo_path):
                 with open(logo_path, "rb") as f:
                     return base64.b64encode(f.read()).decode()
-        
-        # If not found, check current directory
-        current_dir = os.getcwd()
-        possible_paths_current = [
-            os.path.join(current_dir, "atslogo.jpg"),
-            os.path.join(current_dir, "atslogo.png")
-        ]
-        
-        for logo_path in possible_paths_current:
-            if os.path.exists(logo_path):
-                with open(logo_path, "rb") as f:
-                    return base64.b64encode(f.read()).decode()
                     
-    except Exception as e:
-        st.error(f"Error loading ATS logo: {str(e)}")
+    except Exception:
+        pass
     return None
 
 def initialize_rag():
-    """Initialize RAG system with proper error handling."""
+    """Initialize RAG system."""
     try:
         from rag_chat import answer
         return answer
-    except ImportError as e:
-        st.error(f"Error importing RAG module: {str(e)}")
-        return None
     except Exception as e:
         st.error(f"Error initializing RAG system: {str(e)}")
         return None
@@ -198,22 +141,19 @@ def initialize_rag():
 # --- UI Components ---
 
 def header_html():
-    """Generates the custom header HTML with Manara and ATS logos."""
-    # Load logos
+    """Generates the custom header HTML."""
     logo_base64 = get_logo_base64()
     ats_logo_base64 = get_ats_logo_base64()
 
-    # Left logo (Manara)
     logo_html = f'''
         <img src="data:image/png;base64,{logo_base64}" alt="Manara Logo"
              style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
     ''' if logo_base64 else "🧠"
 
-    # Right logo (ATS)
     ats_html = f'''
         <img src="data:image/jpeg;base64,{ats_logo_base64}" alt="ATS Logo"
              style="height:130px; width:auto; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-    ''' if ats_logo_base64 else "🏫"  # Fallback emoji
+    ''' if ats_logo_base64 else "🏫"
 
     html = f"""
     <div class="header" style="display:flex; align-items:center; justify-content:space-between; position:relative;">
@@ -253,6 +193,12 @@ def main():
         st.error("Chatbot functionality is currently unavailable. Please check the configuration.")
         return
 
+    # Initialize session state
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "quick_action_triggered" not in st.session_state:
+        st.session_state.quick_action_triggered = None
+
     # 1. Header and Features
     header_html()
     features_html()
@@ -262,45 +208,34 @@ def main():
     with col_clear:
         if st.button("🗑️ Clear Chat", use_container_width=True, key="clear_chat_btn"):
             st.session_state.messages = []
+            st.session_state.quick_action_triggered = None
             st.rerun()
 
     # 3. Layout for Chat and Sidebar
     col1, col2 = st.columns([3, 1])
 
     with col1:
-        # Initialize chat history
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-            
-        # Initialize auto-submit state
-        if "auto_submit" not in st.session_state:
-            st.session_state.auto_submit = None
-
-        # Display chat messages from history on app rerun
+        # Display chat messages from history
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        # Handle auto-submit from quick actions
-        if st.session_state.auto_submit:
-            prompt = st.session_state.auto_submit
-            st.session_state.auto_submit = None
+        # Handle quick action triggered questions
+        if st.session_state.quick_action_triggered:
+            prompt = st.session_state.quick_action_triggered
+            st.session_state.quick_action_triggered = None
             
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
+            
             # Get bot response
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 message_placeholder.markdown("Thinking...")
                 
                 try:
-                    # Call the answer function with the query and chat history
                     response = rag_answer(prompt, st.session_state.messages)
                     message_placeholder.markdown(response)
-                    
                 except Exception as e:
                     error_msg = f"I apologize, but I'm experiencing technical difficulties. Please try again later. Error: {str(e)}"
                     message_placeholder.markdown(error_msg)
@@ -312,28 +247,23 @@ def main():
             # Rerun to show the new messages
             st.rerun()
 
-        # Regular chat input (only show if no auto-submit)
+        # Regular chat input
         if prompt := st.chat_input("Ask a question about ATS...", key="chat_input"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
+            
             # Get bot response
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 message_placeholder.markdown("Thinking...")
                 
                 try:
-                    # Check if the prompt is a simple greeting
                     greeting_keywords = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"]
                     is_greeting = any(keyword in prompt.lower() for keyword in greeting_keywords) and len(prompt.split()) <= 3
                     
                     if is_greeting:
-                        # Respond with a friendly greeting without using RAG
                         response = "Hello, my name is Manara. I'm a friendly bilingual assistant for Applied Technology Schools (ATS) in UAE. I'm here to help with any questions you may have about ATS. How can I assist you today?"
                     else:
-                        # Call the answer function with the query and chat history for actual questions
                         response = rag_answer(prompt, st.session_state.messages)
                     
                     message_placeholder.markdown(response)
@@ -355,18 +285,21 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Quick action buttons - now they auto-submit the question
-        if st.button("Admission Info", key="quick_action_Admission Info", use_container_width=True):
-            st.session_state.auto_submit = "What are the admission requirements?"
+        # Quick action buttons - these will AUTO-SUBMIT immediately
+        if st.button("Admission Info", key="quick_action_1", use_container_width=True):
+            st.session_state.quick_action_triggered = "What are the admission requirements?"
             st.rerun()
-        if st.button("Fee Structure", key="quick_action_Fee Structure", use_container_width=True):
-            st.session_state.auto_submit = "How much are the tuition fees?"
+            
+        if st.button("Fee Structure", key="quick_action_2", use_container_width=True):
+            st.session_state.quick_action_triggered = "How much are the tuition fees?"
             st.rerun()
-        if st.button("Programs", key="quick_action_Programs", use_container_width=True):
-            st.session_state.auto_submit = "What programs are available at ATS?"
+            
+        if st.button("Programs", key="quick_action_3", use_container_width=True):
+            st.session_state.quick_action_triggered = "What programs are available at ATS?"
             st.rerun()
-        if st.button("Locations", key="quick_action_Locations", use_container_width=True):
-            st.session_state.auto_submit = "Where are the ATS campuses located?"
+            
+        if st.button("Locations", key="quick_action_4", use_container_width=True):
+            st.session_state.quick_action_triggered = "Where are the ATS campuses located?"
             st.rerun()
 
         # About ATS Group
