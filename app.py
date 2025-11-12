@@ -14,8 +14,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-echo "=== Remote ==="
-git remote -v
 # Custom CSS
 CUSTOM_CSS = """
 /* Modern Dark Theme */
